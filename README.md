@@ -13,8 +13,6 @@ To load the module, add the following entries to `remotes` and `projects` in
 
 ```yaml
 manifest:
-  defaults:
-    revision: v0.1 # version to use for this module and for ZMK
   remotes:
     - name: zmkfirmware
       url-base: https://github.com/zmkfirmware
@@ -23,9 +21,11 @@ manifest:
   projects:
     - name: zmk
       remote: zmkfirmware
+      revision: v0.3 # Set to desired ZMK release.
       import: app/west.yml
     - name: zmk-tri-state
       remote: urob
+      revision: v0.3 # Should match ZMK release.
   self:
     path: config
 ```
