@@ -81,7 +81,11 @@ void trigger_end_behavior(struct active_tri_state *si) {
 void behavior_tri_state_timer_handler(struct k_work *item) {
     struct k_work_delayable *d_work = k_work_delayable_from_work(item);
     struct active_tri_state *tri_state = CONTAINER_OF(d_work, struct active_tri_state, release_timer);
-    if (!tri_state->is_active || tri_state->timer_cancelled || tri_state->is_pressed) {
+    if (tri_state->timer_cancelled) {
+        tri_state->timer_cancelled = false;
+        return;
+    }
+    if (!tri_state->is_active || tri_state->is_pressed) {
         return;
     }
     LOG_DBG("Tri-state deactivated due to timer");
@@ -115,6 +119,7 @@ static int new_tri_state(struct zmk_behavior_binding_event *event, const struct 
             ref_tri_state->is_active = true;
             ref_tri_state->is_pressed = false;
             ref_tri_state->first_press = true;
+            ref_tri_state->timer_cancelled = false;
             *tri_state = ref_tri_state;
             return 0;
         }
