@@ -24,11 +24,10 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 
 struct behavior_tri_state_config {
     int32_t ignored_key_positions_len;
-    int32_t ignored_layers_len;
     struct zmk_behavior_binding start_behavior;
     struct zmk_behavior_binding continue_behavior;
     struct zmk_behavior_binding end_behavior;
-    int32_t ignored_layers;
+    uint32_t ignored_layers;
     int32_t timeout_ms;
     int tap_ms;
     uint8_t ignored_key_positions[];
@@ -302,7 +301,6 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
         .ignored_key_positions = DT_INST_PROP(n, ignored_key_positions),                           \
         .ignored_key_positions_len = DT_INST_PROP_LEN(n, ignored_key_positions),                   \
         .ignored_layers = DT_INST_FOREACH_PROP_ELEM(n, ignored_layers, IF_BIT) 0,                  \
-        .ignored_layers_len = DT_INST_PROP_LEN(n, ignored_layers),                                 \
         .timeout_ms = DT_INST_PROP(n, timeout_ms),                                                 \
         .tap_ms = DT_INST_PROP(n, tap_ms),                                                         \
         .start_behavior = _TRANSFORM_ENTRY(0, n),                                                  \
