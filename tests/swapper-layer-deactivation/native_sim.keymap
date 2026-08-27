@@ -4,9 +4,9 @@
 
 /* A layer can be deactivated with no accompanying key event (a sticky layer
  * quick-releasing here; an auto-layer/num-word dropping on the tri-state's
- * own keycode in the wild). With interrupt-on-layer-deactivation set, the
- * tri-state ends as soon as the key is released instead of holding its start
- * behavior until timeout. */
+ * own keycode in the wild). With the layer listed in
+ * end-on-layer-deactivation, the tri-state ends as soon as the key is
+ * released instead of holding its start behavior until timeout. */
 
 / {
     behaviors {
@@ -16,7 +16,7 @@
             bindings = <&kt LALT>, <&kp TAB>, <&kt LALT>;
             ignored-key-positions = <3>;
             timeout-ms = <200>;
-            interrupt-on-layer-deactivation;
+            end-on-layer-deactivation = <1>;
         };
     };
 

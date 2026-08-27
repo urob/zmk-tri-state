@@ -28,9 +28,9 @@ struct behavior_tri_state_config {
     struct zmk_behavior_binding continue_behavior;
     struct zmk_behavior_binding end_behavior;
     uint32_t ignored_layers;
+    uint32_t end_on_layer_deactivation;
     int32_t timeout_ms;
     int tap_ms;
-    bool interrupt_on_layer_deactivation;
     uint8_t ignored_key_positions[];
 };
 
@@ -147,6 +147,13 @@ static bool is_layer_ignored(struct active_tri_state *tri_state, int32_t layer) 
     return false;
 }
 
+static bool is_layer_ending(struct active_tri_state *tri_state, int32_t layer) {
+    if ((BIT(layer) & tri_state->config->end_on_layer_deactivation) != 0U) {
+        return true;
+    }
+    return false;
+}
+
 static int on_tri_state_binding_pressed(struct zmk_behavior_binding *binding,
                                         struct zmk_behavior_binding_event event) {
     const struct device *dev = zmk_behavior_get_binding(binding->behavior_dev);
@@ -182,7 +189,7 @@ static void release_tri_state(struct zmk_behavior_binding_event event,
     tri_state->is_pressed = false;
     zmk_behavior_invoke_binding(continue_behavior, event, false);
     if (tri_state->interrupt_deferred) {
-        k_work_schedule(&tri_state->release_timer, K_NO_WAIT);
+        k_work_reschedule(&tri_state->release_timer, K_NO_WAIT);
     } else {
         reset_timer(k_uptime_get(), tri_state);
     }
@@ -277,36 +284,37 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
         if (!tri_state->is_active) {
             continue;
         }
+        bool interrupt = ev->state
+                             ? !is_layer_ignored(tri_state, ev->layer)  // activation: unless ignored
+                             : is_layer_ending(tri_state, ev->layer);   // deactivation: only if listed
+        if (!interrupt) {
+            continue;
+        }
         if (!ev->state) {
             // Deactivations can arrive mid-event (e.g. an auto-layer dropping on the
             // tri-state's own keycode); end via the release timer so the queued end
             // behavior runs with clean ordering instead of nesting into this event.
-            if (tri_state->config->interrupt_on_layer_deactivation &&
-                !is_layer_ignored(tri_state, ev->layer) && !tri_state->interrupt_deferred) {
+            if (!tri_state->interrupt_deferred) {
                 LOG_DBG("Tri-State layer deactivated, deferring end at %d %d",
                         tri_state->position, ev->layer);
                 tri_state->interrupt_deferred = true;
-                stop_timer(tri_state);
-                tri_state->timer_cancelled = false;
-                k_work_schedule(&tri_state->release_timer, K_NO_WAIT);
+                k_work_reschedule(&tri_state->release_timer, K_NO_WAIT);
             }
             continue;
         }
-        if (!is_layer_ignored(tri_state, ev->layer)) {
-            LOG_DBG("Tri-State layer changed, ending at %d %d", tri_state->position, ev->layer);
-            tri_state->is_active = false;
-            struct zmk_behavior_binding_event event = {.position = tri_state->position,
-                                                       .timestamp = k_uptime_get()};
-            if (tri_state->is_pressed) {
-                zmk_behavior_invoke_binding(
-                    (struct zmk_behavior_binding *)&tri_state->config->continue_behavior, event, false);
-            }
+        LOG_DBG("Tri-State layer changed, ending at %d %d", tri_state->position, ev->layer);
+        tri_state->is_active = false;
+        struct zmk_behavior_binding_event event = {.position = tri_state->position,
+                                                   .timestamp = k_uptime_get()};
+        if (tri_state->is_pressed) {
             zmk_behavior_invoke_binding(
-                (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, true);
-            zmk_behavior_invoke_binding(
-                (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, false);
-            return ZMK_EV_EVENT_BUBBLE;
+                (struct zmk_behavior_binding *)&tri_state->config->continue_behavior, event, false);
         }
+        zmk_behavior_invoke_binding(
+            (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, true);
+        zmk_behavior_invoke_binding(
+            (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, false);
+        return ZMK_EV_EVENT_BUBBLE;
     }
     return ZMK_EV_EVENT_BUBBLE;
 }
@@ -327,9 +335,10 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
         .ignored_key_positions = DT_INST_PROP(n, ignored_key_positions),                           \
         .ignored_key_positions_len = DT_INST_PROP_LEN(n, ignored_key_positions),                   \
         .ignored_layers = DT_INST_FOREACH_PROP_ELEM(n, ignored_layers, IF_BIT) 0,                  \
+        .end_on_layer_deactivation =                                                               \
+            DT_INST_FOREACH_PROP_ELEM(n, end_on_layer_deactivation, IF_BIT) 0,                     \
         .timeout_ms = DT_INST_PROP(n, timeout_ms),                                                 \
         .tap_ms = DT_INST_PROP(n, tap_ms),                                                         \
-        .interrupt_on_layer_deactivation = DT_INST_PROP(n, interrupt_on_layer_deactivation),       \
         .start_behavior = _TRANSFORM_ENTRY(0, n),                                                  \
         .continue_behavior = _TRANSFORM_ENTRY(1, n),                                               \
         .end_behavior = _TRANSFORM_ENTRY(2, n)};                                                   \
