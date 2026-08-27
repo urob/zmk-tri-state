@@ -178,6 +178,17 @@ has elapsed after releasing the Tri-State or a ignored key.
   change to layer 2 **does** fire the interrupt behavior, because it is not
   included in `ignored-layers`.
 
+#### `end-on-layer-deactivation`
+
+- By default, layer deactivations never end the tri-state, only activations do
+  (see `ignored-layers`).
+- Layers listed here end the tri-state when they are deactivated. Useful when a
+  layer can drop with no key event left to interrupt, for example num-word
+  releasing on the tri-state's own keycode, which otherwise leaves the
+  tri-state held until `timeout-ms`.
+- Like `ignored-layers`, this is an array of layer indexes. The two lists are
+  independent of each other.
+
 ## References
 
 - Nick Conway's original behavior

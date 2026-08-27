@@ -44,10 +44,10 @@
      * on this press, deactivating the layer with no key event */
     ZMK_MOCK_PRESS(0,0,10)
     ZMK_MOCK_RELEASE(0,0,100)
-    /* the gap is shorter than timeout-ms and the trailing key is in
-     * ignored-key-positions: LALT is still held when it arrives (it comes
-     * out ALT-modified) and is only released by the timer */
+    /* the trailing key is in ignored-key-positions, so it does not
+     * interrupt; LALT is still held when it arrives and is only released
+     * by the timer, which the long tail of the last event lets fire */
     ZMK_MOCK_PRESS(1,1,10)
-    ZMK_MOCK_RELEASE(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,1000)
     >;
 };

@@ -47,10 +47,10 @@
      * on this press, deactivating the layer with no key event */
     ZMK_MOCK_PRESS(0,0,10)
     ZMK_MOCK_RELEASE(0,0,100)
-    /* the gap is shorter than timeout-ms and the trailing key is in
-     * ignored-key-positions: it comes out clean because LALT was already
-     * released at the swap key release */
+    /* the trailing key is in ignored-key-positions and comes out clean
+     * because LALT was already released at the swap key release; the long
+     * tail covers the timeout window to catch regressions */
     ZMK_MOCK_PRESS(1,1,10)
-    ZMK_MOCK_RELEASE(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,1000)
     >;
 };
