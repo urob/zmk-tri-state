@@ -45,7 +45,7 @@ every press, and a third once a terminating condition is met.
 The canonical example is an alt-tab window switcher (see below for an improved
 version):
 
-```
+```dts
 / {
     behaviors {
         swap: swapper {
@@ -62,8 +62,6 @@ every subsequent `&swap` press taps `TAB` again, and terminating
 the tri-state behavior toggles `LALT` off.
 
 Specifically, a tri-state ends if any of the following occurs:
-
-A tri-state ends if any of the following occurs:
 
 - An event at a key position not listed in `ignored-key-positions`. Releases
   count as well as presses, so releasing a held layer key ends the tri-state.
@@ -95,7 +93,7 @@ elapsed after releasing the tri-state or an ignored key.
   [Swapper](https://github.com/callum-oakley/qmk_firmware/tree/master/users/callum)
   from Callum Oakley:
 
-```
+```dts
 / {
     behaviors {
         swap: swapper {
@@ -149,7 +147,7 @@ elapsed after releasing the tri-state or an ignored key.
   `ignored-layers` is not optional: without it the tri-state would see its own
   start behavior activate layer 1 and immediately fire the end behavior.
 
-```
+```dts
 / {
     behaviors {
         smart_layer: smart_layer {
