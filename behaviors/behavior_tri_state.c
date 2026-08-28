@@ -141,17 +141,11 @@ static bool is_other_key_ignored(struct active_tri_state *tri_state, int32_t pos
 }
 
 static bool is_layer_ignored(struct active_tri_state *tri_state, int32_t layer) {
-    if ((BIT(layer) & tri_state->config->ignored_layers) != 0U) {
-        return true;
-    }
-    return false;
+    return (BIT(layer) & tri_state->config->ignored_layers) != 0U;
 }
 
 static bool is_layer_ending(struct active_tri_state *tri_state, int32_t layer) {
-    if ((BIT(layer) & tri_state->config->end_on_layer_deactivation) != 0U) {
-        return true;
-    }
-    return false;
+    return (BIT(layer) & tri_state->config->end_on_layer_deactivation) != 0U;
 }
 
 static int on_tri_state_binding_pressed(struct zmk_behavior_binding *binding,
