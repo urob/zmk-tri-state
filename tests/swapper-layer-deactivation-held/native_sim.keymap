@@ -1,0 +1,67 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+
+/* The deferred end against a held key. Here the layer drops while the
+ * tri-state is still pressed, so the end cannot run from the layer event
+ * itself (the continue behavior is down) and has to be handed to the release
+ * path instead. The trailing key pins the ordering: it is in
+ * ignored-key-positions, so if the end regressed to the timeout it would be
+ * emitted before LALT is released rather than after.
+ *
+ * Layer 1 is in ignored-layers *and* in end-on-layer-deactivation: the two
+ * lists are independent, so ignoring the activation must not suppress the
+ * end on deactivation. */
+
+/ {
+    behaviors {
+        swap: swap {
+            compatible = "zmk,behavior-tri-state";
+            #binding-cells = <0>;
+            bindings = <&kt LALT>, <&kp TAB>, <&kt LALT>;
+            ignored-key-positions = <1 3>;
+            ignored-layers = <1>;
+            timeout-ms = <200>;
+            end-on-layer-deactivation = <1>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+        label = "Default keymap";
+
+        default_layer {
+            bindings = <
+                &swap    &kp A
+                &kp B    &tog 1>;
+        };
+
+        extra_layer {
+            bindings = <
+                &trans   &trans
+                &trans   &trans>;
+        };
+    };
+};
+
+&kscan {
+    events = <
+    /* tog 1: ignored position, and layer 1 activation is in ignored-layers */
+    ZMK_MOCK_PRESS(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,10)
+    /* one full tap, so the second press goes through the continue behavior */
+    ZMK_MOCK_PRESS(0,0,10)
+    ZMK_MOCK_RELEASE(0,0,10)
+    /* second press left held */
+    ZMK_MOCK_PRESS(0,0,10)
+    /* trans on layer 1 falls through to tog 1: layer 1 deactivates while the
+     * tri-state key is still down, so the end defers to the release */
+    ZMK_MOCK_PRESS(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,10)
+    /* the end must land here, on the release */
+    ZMK_MOCK_RELEASE(0,0,10)
+    /* ignored position: emitted after LALT is already released */
+    ZMK_MOCK_PRESS(0,1,10)
+    ZMK_MOCK_RELEASE(0,1,1000)
+    >;
+};
