@@ -32,52 +32,55 @@ manifest:
 
 ## Summary
 
-Tri-States are a way to have something persist while other behaviors occur.
+A tri-state is a key that triggers one behavior on the first press, another on
+every press, and a third once a terminating condition is met.
 
-The tri-state key will fire the 'start' behavior when the key is pressed for the
-first time. Subsequent presses of the same key will output the second,
-'continue' behavior, and any key position or layer state change that is not
-specified (see below) will trigger the 'interrupt behavior'.
+`bindings` takes them in that order:
 
-### Basic Usage
+- **start** — fires once, on the first press.
+- **continue** — fires on every press, including the first.
+- **end** — fires once, when the tri-state ends (see below). Also called the
+  'interrupt' behavior further down.
 
-The following is a basic definition of a tri-state:
+The canonical example is an alt-tab window switcher (see below for an improved
+version):
 
 ```
 / {
     behaviors {
-        tri-state: tri-state {
+        swap: swapper {
             compatible = "zmk,behavior-tri-state";
-            label = "TRI-STATE";
+            label = "SWAPPER";
             #binding-cells = <0>;
-            bindings = <&kp A>, <&kp B>, <&kt C>;
+            bindings = <&kt LALT>, <&kp TAB>, <&kt LALT>;
         };
     };
-    keymap {
-        compatible = "zmk,keymap";
-        label ="Default keymap";
-        default_layer {
-            bindings = <
-                &tri-state  &kp D
-                &kp E       &kp F>;
-        };
-    };
-};
 ```
 
-Pressing `tri-state` will fire the first behavior, and output `A`, as well as
-the second behavior, outputting `B`. Subsequent presses of `tri-state` will
-output `B`. When another key is pressed or a layer change occurs, the third,
-'interrupt' behavior will fire.
+Pressing `&swap` the first time toggles `LALT` down and then taps `TAB`, 
+every subsequent `&swap` press taps `TAB` again, and terminating 
+the tri-state behavior toggles `LALT` off.
 
-### Advanced Configuration
+Specifically, a tri-state ends if any of the following occurs:
 
-#### `timeout-ms`
+A tri-state ends if any of the following occurs:
 
-Setting `timeout-ms` will cause the deactivation behavior to fire when the time
-has elapsed after releasing the Tri-State or a ignored key.
+- An event at a key position not listed in `ignored-key-positions`. Releases
+  count as well as presses, so releasing a held layer key ends the tri-state.
+  The tri-state's own key position never ends it.
+- The activation of a layer not listed in `ignored-layers`, or the deactivation
+  of a layer listed in `end-on-layer-deactivation`. All other layer
+  deactivations are ignored.
+- `timeout-ms` elapsing after the tri-state key, or an ignored key, is released.
 
-#### `ignored-key-positions`
+## Configuration
+
+### `timeout-ms`
+
+Setting `timeout-ms` will cause the end behavior to fire once the time has
+elapsed after releasing the tri-state or an ignored key.
+
+### `ignored-key-positions`
 
 - Including `ignored-key-positions` in your tri-state definition will let the
   key positions specified NOT trigger the interrupt behavior when a tri-state is
@@ -88,7 +91,7 @@ has elapsed after releasing the Tri-State or a ignored key.
   positions are numbered according to your keymap, starting with 0. So if the
   first key in your keymap is Q, this key is in position 0. The next key
   (probably W) will be in position 1, et cetera.
-- See the following example, which is an implementation of the popular
+- Extending the swapper above with a backwards-tab key gives the popular
   [Swapper](https://github.com/callum-oakley/qmk_firmware/tree/master/users/callum)
   from Callum Oakley:
 
@@ -121,30 +124,40 @@ has elapsed after releasing the Tri-State or a ignored key.
 - The sequence `(swap, swap, B)` produces `(LA(TAB), LA(TAB), B)`. The B
   behavior **does** fire the interrupt behavior, because it is **not** included
   in `ignored-key-positions`.
+- In practice, the swapper is typically placed on a momentary layer and is 
+  terminated by releasing that layer.
 
-#### `ignored-layers`
+### `ignored-layers`
 
-- By default, any layer change will trigger the end behavior.
+- By default, any layer *activation* will trigger the end behavior. Layer
+  deactivations are ignored unless listed in `end-on-layer-deactivation`.
 - Including `ignored-layers` in your tri-state definition will let the specified
-  layers NOT trigger the end behavior when they become active (include the layer
-  the behavior is on to accommodate for layer toggling).
+  layers NOT trigger the end behavior when they become active.
+- List every layer that can be activated while the tri-state is running. That
+  includes layers opened by the tri-state's own start behavior (e.g. a `&tog`),
+  and layers opened by a key in `ignored-key-positions`. 
+  A layer only needs listing if it can be activated
+  *during* the tri-state; one that was already active when the tri-state
+  started does not.
 - Activating any layer **NOT** listed in `ignored-layers` will cause the
   interrupt behavior to fire.
 - Note that `ignored-layers` is an array of layer indexes. Layers are numbered
   according to your keymap, starting with 0. The first layer in your keymap is
   layer 0. The next layer will be layer 1, et cetera.
-- Looking back at the swapper implementation, we can see how `ignored-layers`
-  can affect things
+- The most common use is a tri-state that opens a layer itself and ends the layer
+  when any key not whitelisted by `ignored-key-positions` is pressed. Here
+  `ignored-layers` is not optional: without it the tri-state would see its own
+  start behavior activate layer 1 and immediately fire the end behavior.
 
 ```
 / {
     behaviors {
-        swap: swapper {
+        smart_layer: smart_layer {
             compatible = "zmk,behavior-tri-state";
-            label = "SWAPPER";
+            label = "SMART_LAYER";
             #binding-cells = <0>;
-            bindings = <&kt LALT>, <&kp TAB>, <&kt LALT>;
-            ignored-key-positions = <1 2 3>;
+            bindings = <&tog 1>, <&none>, <&tog 1>;
+            ignored-key-positions = <1 3>;
             ignored-layers = <1>;
         };
     };
@@ -153,38 +166,29 @@ has elapsed after releasing the Tri-State or a ignored key.
         label ="Default keymap";
         default_layer {
             bindings = <
-                &swap    &kp LS(TAB)
-                &kp B    &tog 1>;
+                &smart_layer  &kp A
+                &kp B         &kp C>;
         };
-        layer2 {
+        second_layer {
             bindings = <
-                &kp DOWN    &kp B
-                &tog 2    &trans>;
-        };
-        layer3 {
-            bindings = <
-                &kp LEFT  &kp N2
-                &trans    &kp N3>;
+                &trans        &kp LEFT
+                &kp B         &kp RIGHT>;
         };
     };
 };
 ```
 
-- The sequence `(swap, tog 1, DOWN)` produces `(LA(TAB), LA(DOWN))`. The change
-  to layer 1 does not fire the interrupt behavior, because it is included in
-  `ignored-layers`, and DOWN is in the same position as the tri-state, also not
-  firing the interrupt behavior.
-- The sequence `(swap, tog 1, tog 2, LEFT)` produces `(LA(TAB), LEFT`. The
-  change to layer 2 **does** fire the interrupt behavior, because it is not
-  included in `ignored-layers`.
+- Pressing `smart_layer` toggles layer 1 on and keeps it there. `LEFT` and
+  `RIGHT` are in `ignored-key-positions`, so they can be used freely; `B` is
+  not, so pressing it fires the end behavior and toggles layer 1 back off.
 
-#### `end-on-layer-deactivation`
+### `end-on-layer-deactivation`
 
 - By default, layer deactivations never end the tri-state, only activations do
   (see `ignored-layers`).
 - Layers listed here end the tri-state when they are deactivated. Useful when a
   layer can drop with no key event left to interrupt, for example num-word
-  releasing on the tri-state's own keycode, which otherwise leaves the
+  dropping the layer on the tri-state's own keycode, which otherwise leaves the
   tri-state held until `timeout-ms`.
 - Like `ignored-layers`, this is an array of layer indexes. The two lists are
   independent of each other.
