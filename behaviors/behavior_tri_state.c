@@ -169,13 +169,17 @@ static int on_tri_state_binding_pressed(struct zmk_behavior_binding *binding,
         LOG_DBG("%d created new tri_state", event.position);
     }
     LOG_DBG("%d tri_state pressed", event.position);
-    tri_state->is_pressed = true;
     if (tri_state->first_press) {
         zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior, event, true);
         zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior,
                                          event, false);
         tri_state->first_press = false;
     }
+    // Stop processing if tri-state was interrupted.
+    if (!tri_state->is_active) {
+        return ZMK_BEHAVIOR_OPAQUE;
+    }
+    tri_state->is_pressed = true;
     zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->continue_behavior, event, true);
     return ZMK_BEHAVIOR_OPAQUE;
 }
@@ -310,10 +314,7 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
             zmk_behavior_invoke_binding(
                 (struct zmk_behavior_binding *)&tri_state->config->continue_behavior, event, false);
         }
-        zmk_behavior_invoke_binding(
-            (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, true);
-        zmk_behavior_invoke_binding(
-            (struct zmk_behavior_binding *)&tri_state->config->end_behavior, event, false);
+        trigger_end_behavior(tri_state);
         // Keep scanning: several tri-states can be active at once.
         continue;
     }
