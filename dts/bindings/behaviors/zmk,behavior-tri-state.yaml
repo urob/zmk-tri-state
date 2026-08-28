@@ -19,6 +19,17 @@ properties:
     type: array
     required: false
     default: []
+  end-on-layer-deactivation:
+    type: array
+    required: false
+    default: []
+    description: |
+      Layers whose deactivation ends the tri-state. Empty by default: a
+      tri-state on a momentary layer whose trigger key is in
+      ignored-key-positions relies on surviving the layer release. List a
+      layer here when it may be deactivated without any accompanying key
+      event (e.g. an auto-layer/num-word or sticky layer dropping), which
+      would otherwise leave the tri-state held until timeout.
   timeout-ms:
     type: int
     default: -1

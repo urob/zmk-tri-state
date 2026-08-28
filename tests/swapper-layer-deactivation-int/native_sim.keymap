@@ -1,0 +1,30 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+#include "../behavior_keymap.dtsi"
+
+/* Deferred end vs the continue behavior: the tri-state is pressed twice
+ * while layer 1 is up, then toggling layer 1 off (position 3 is ignored)
+ * deactivates it with no interrupting key event. With layer 1 listed in
+ * end-on-layer-deactivation the tri-state must end right there, not at
+ * timeout. */
+
+&swap {
+    end-on-layer-deactivation = <1>;
+};
+
+&kscan {
+    events = <
+    /* two full taps, LALT held across them */
+    ZMK_MOCK_PRESS(0,0,10)
+    ZMK_MOCK_RELEASE(0,0,10)
+    ZMK_MOCK_PRESS(0,0,10)
+    ZMK_MOCK_RELEASE(0,0,10)
+    /* tog 1: ignored position, and layer 1 activation is in ignored-layers */
+    ZMK_MOCK_PRESS(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,10)
+    /* trans on layer 1 falls through to tog 1: layer 1 deactivates */
+    ZMK_MOCK_PRESS(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,1000)
+    >;
+};

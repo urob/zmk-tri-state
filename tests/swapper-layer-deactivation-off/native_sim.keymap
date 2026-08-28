@@ -1,0 +1,53 @@
+#include <dt-bindings/zmk/keys.h>
+#include <behaviors.dtsi>
+#include <dt-bindings/zmk/kscan_mock.h>
+
+/* Same scenario as swapper-layer-deactivation but WITHOUT
+ * interrupt-on-layer-deactivation: the default behavior ignores layer
+ * deactivations, so the start behavior is held until timeout-ms. */
+
+/ {
+    behaviors {
+        swap: swap {
+            compatible = "zmk,behavior-tri-state";
+            #binding-cells = <0>;
+            bindings = <&kt LALT>, <&kp TAB>, <&kt LALT>;
+            ignored-key-positions = <3>;
+            timeout-ms = <200>;
+        };
+    };
+
+    keymap {
+        compatible = "zmk,keymap";
+        label = "Default keymap";
+
+        default_layer {
+            bindings = <
+                &sl 1    &kp A
+                &kp B    &kp C>;
+        };
+
+        extra_layer {
+            bindings = <
+                &swap    &trans
+                &trans   &trans>;
+        };
+    };
+};
+
+&kscan {
+    events = <
+    /* arm the sticky layer */
+    ZMK_MOCK_PRESS(0,0,10)
+    ZMK_MOCK_RELEASE(0,0,10)
+    /* same position now hits &swap on layer 1; the sticky layer quick-releases
+     * on this press, deactivating the layer with no key event */
+    ZMK_MOCK_PRESS(0,0,10)
+    ZMK_MOCK_RELEASE(0,0,100)
+    /* the trailing key is in ignored-key-positions, so it does not
+     * interrupt; LALT is still held when it arrives and is only released
+     * by the timer, which the long tail of the last event lets fire */
+    ZMK_MOCK_PRESS(1,1,10)
+    ZMK_MOCK_RELEASE(1,1,1000)
+    >;
+};
