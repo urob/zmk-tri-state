@@ -2,9 +2,9 @@
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/kscan_mock.h>
 
-/* Same scenario as swapper-layer-deactivation but WITHOUT
- * interrupt-on-layer-deactivation: the default behavior ignores layer
- * deactivations, so the start behavior is held until timeout-ms. */
+/* Same scenario as swapper-layer-deactivation but with layer 1 left out of
+ * end-on-layer-deactivation: deactivations are ignored by default, so the
+ * start behavior is held until timeout-ms. */
 
 / {
     behaviors {
