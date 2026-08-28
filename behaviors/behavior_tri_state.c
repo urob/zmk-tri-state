@@ -82,7 +82,8 @@ void trigger_end_behavior(struct active_tri_state *si) {
 
 void behavior_tri_state_timer_handler(struct k_work *item) {
     struct k_work_delayable *d_work = k_work_delayable_from_work(item);
-    struct active_tri_state *tri_state = CONTAINER_OF(d_work, struct active_tri_state, release_timer);
+    struct active_tri_state *tri_state =
+        CONTAINER_OF(d_work, struct active_tri_state, release_timer);
     if (tri_state->timer_cancelled) {
         tri_state->timer_cancelled = false;
         return;
@@ -109,7 +110,8 @@ static struct active_tri_state *find_tri_state(uint32_t position) {
     return NULL;
 }
 
-static int new_tri_state(struct zmk_behavior_binding_event *event, const struct behavior_tri_state_config *config,
+static int new_tri_state(struct zmk_behavior_binding_event *event,
+                         const struct behavior_tri_state_config *config,
                          struct active_tri_state **tri_state) {
     for (int i = 0; i < ZMK_BHV_MAX_ACTIVE_TRI_STATES; i++) {
         struct active_tri_state *const ref_tri_state = &active_tri_states[i];
@@ -164,9 +166,10 @@ static int on_tri_state_binding_pressed(struct zmk_behavior_binding *binding,
     }
     LOG_DBG("%d tri_state pressed", event.position);
     if (tri_state->first_press) {
-        zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior, event, true);
-        zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior,
-                                         event, false);
+        zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior, event,
+                                    true);
+        zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->start_behavior, event,
+                                    false);
         tri_state->first_press = false;
     }
     // Stop processing if tri-state was interrupted.
@@ -174,7 +177,8 @@ static int on_tri_state_binding_pressed(struct zmk_behavior_binding *binding,
         return ZMK_BEHAVIOR_OPAQUE;
     }
     tri_state->is_pressed = true;
-    zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->continue_behavior, event, true);
+    zmk_behavior_invoke_binding((struct zmk_behavior_binding *)&cfg->continue_behavior, event,
+                                true);
     return ZMK_BEHAVIOR_OPAQUE;
 }
 
@@ -257,7 +261,8 @@ static int tri_state_position_state_changed_listener(const zmk_event_t *eh) {
                                                        .timestamp = k_uptime_get()};
             if (tri_state->is_pressed) {
                 zmk_behavior_invoke_binding(
-                    (struct zmk_behavior_binding *)&tri_state->config->continue_behavior, event, false);
+                    (struct zmk_behavior_binding *)&tri_state->config->continue_behavior, event,
+                    false);
             }
             trigger_end_behavior(tri_state);
             // Keep scanning: several tri-states can be active at once.
@@ -282,9 +287,9 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
         if (!tri_state->is_active) {
             continue;
         }
-        bool interrupt = ev->state
-                             ? !is_layer_ignored(tri_state, ev->layer)  // activation: unless ignored
-                             : is_layer_ending(tri_state, ev->layer);   // deactivation: only if listed
+        bool interrupt =
+            ev->state ? !is_layer_ignored(tri_state, ev->layer) // activation: unless ignored
+                      : is_layer_ending(tri_state, ev->layer);  // deactivation: only if listed
         if (!interrupt) {
             continue;
         }
@@ -293,8 +298,8 @@ static int tri_state_layer_state_changed_listener(const zmk_event_t *eh) {
             // tri-state's own keycode); end via the release timer so the queued end
             // behavior runs with clean ordering instead of nesting into this event.
             if (!tri_state->interrupt_deferred) {
-                LOG_DBG("Tri-State layer deactivated, deferring end at %d %d",
-                        tri_state->position, ev->layer);
+                LOG_DBG("Tri-State layer deactivated, deferring end at %d %d", tri_state->position,
+                        ev->layer);
                 tri_state->interrupt_deferred = true;
                 k_work_reschedule(&tri_state->release_timer, K_NO_WAIT);
             }
